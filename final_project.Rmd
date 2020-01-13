@@ -1,0 +1,519 @@
+---
+title: "Final Project - DSC 520"
+author: "Srilakshmi Bodduluru"
+date: "November 11, 2019"
+output: word_document
+---
+
+###Introduction : Heart Disease UCI
+
+  Heart disease is the leading cause of death for people of most ethnicities in the United States. About 610,000 people die of heart disease in the United States every year-that's 1 in every 4 deaths. Heart disease is the leading cause of death for both men and women. More than half of the deaths due to heart disease in 2009 were in men.
+  Using this dataset I would like to predict the presence of heart disease for a patient. The variables in the dataset explains the various test reports of the patient. If we can predict the heart disease in advance depending upon the various test reports, it will be really helpful to control them or take precautionary measures to avoid them by taking necessary steps.
+  
+###Research questions :
+
+
+1. Can we find any trends in heart data to predict certain cardiovascular events or find any clear indications of heart    health?
+
+2. Is there any correlation between target and other variables?
+
+3. Which variables contributes most to the target variables?
+
+4. Can we build a regression model to predict the result?
+
+5. If we can build a model, what will be the accuracy of the model? How can we improve that?
+
+
+###Approach:
+
+
+For this problem, first I would like to focus on the dataset and try to completely understand the various variables in the dataset and try to find the data is complete or not. If not I will try to clean the data by using necessary steps. Then I would like to plot some scatter plots to identify how the data is distributed for various variables. I would like to plot histograms and normal curves to find out the distribution of the variables. By using summary statistics I would like to explore the distribution of the variables. I would like to find out the correlation between the variables by using correlation matrix and try to find out which variables contribute the most. Finally I will build a regression model to predict the outcome variable (target in this case).
+
+
+###Data :
+
+Original data source: kaggle data sets. [Heart Disease UCI](https://www.kaggle.com/ronitf/heart-disease-uci)
+
+Data set: [heart.csv](https://www.kaggle.com/ronitf/heart-disease-uci#heart.csv)
+
+This database contains 76 attributes, but all published experiments refer to using a subset of 14 of them. In particular, the Cleveland database is the only one that has been used by ML researchers to this date. The "goal" field refers to the presence of heart disease in the patient. It is integer valued from 0 (no presence) to 4.
+
+Attribute Information:
+
+age : age in years
+
+sex : (1 = male; 0 = female)
+
+cp: chest pain type
+
+trestbps: resting blood pressure (in mm Hg on admission to the hospital)
+
+chol : serum cholestoral in mg/dl
+
+fbs : (fasting blood sugar > 120 mg/dl) (1 = true; 0 = false)
+
+restecg : resting electrocardiographic results
+
+thalach : maximum heart rate achieved
+
+exang : exercise induced angina (1 = yes; 0 = no)
+
+oldpeak : ST depression induced by exercise relative to rest
+
+slope: the slope of the peak exercise ST segment
+
+ca: number of major vessels (0-3) colored by fluoroscopy
+
+thal : 3 = normal; 6 = fixed defect; 7 = reversible defect
+
+target: 1 or 0 
+
+The names and social security numbers of the patients were recently removed from the database, replaced with dummy values. One file has been "processed", that one containing the Cleveland database. All four unprocessed files also exist in this directory.
+
+###Required Packages:
+
+
+library (car); library(ggplot2); library(pastecs); library(psych); library(Rcmdr); library(e1071);
+library(mlogit); library(foreign); library(caTools); library(Hmisc); library(ggm); library(boot);
+library(QuantPsyc);
+
+
+###Plots and Table Needs:
+
+Scatter plots, histograms, q- q plots, ggplot.
+
+###Import the Data:
+
+```{r}
+
+setwd("~/R/statistics")
+
+# loading the csv file to a dataframe
+
+heart_data <- read.csv( "heart.csv")
+
+#finding the structure of the data
+
+str(heart_data)
+
+```
+
+After successfully loading and observing the structure of the data, what i have observered is that i need to find out any missing values are there and how to handle them. I need to change the variable name for the first column as it contains special characters. I have observed from the structure of the data, i need to factor the categorical variables which i am planning to do in the data cleaning section.
+
+
+###Cleaning the Data:
+
+```{r}
+
+# finding the missing values from the data using is.na()
+
+sum(is.na(heart_data))
+```
+
+From the result we can see that there are no missing values in the data. So we can go ahead with the next step.
+```{r}
+library(data.table)
+
+#renaming the 'ï..age' column to 'age' for easy understanding and handling with out special characters
+
+names(heart_data)[1]<-"age"
+
+heart_data1 <- heart_data
+
+# converting the categorical variables into factors
+
+heart_data$target <- factor(heart_data$target, levels = c(0,1), labels = c("not present", "present"))
+heart_data$sex <- factor(heart_data$sex, levels = c(0,1), labels = c("female", "male"))
+heart_data$fbs <- factor(heart_data$fbs, levels = c(0,1), labels = c("false", "true"))
+heart_data$exang <- factor(heart_data$exang, levels = c(0,1), labels = c("no", "yes"))
+heart_data$cp <- factor(heart_data$cp, levels = c(0:3))
+heart_data$restecg <- factor(heart_data$restecg, levels = c(0:2))
+heart_data$thal <- factor(heart_data$thal, levels = c(0:3))
+heart_data$ca <- factor(heart_data$ca, levels = c(0:4))
+heart_data$slope <- factor(heart_data$slope, levels = c(0:2))
+
+# finding the structure and first few rows of the data after conversion
+
+str(heart_data)
+head(heart_data)
+
+```
+
+###Plotting the variables to understand the distribution of data:
+
+By closely looking at the data what i have observed is that there is a clear differentiation between the values of male and female data. So i want to plot the variables by grouping 'sex' and identify how the data is distributed.
+
+
+```{r,fig.width=8, fig.height=2.5}
+#knitr::opts_chunk$set(fig.width=25, fig.height=25)
+library(purrr)
+library(tidyr)
+library(ggplot2)
+library(gridExtra)
+
+# plottting histograms for continuous variables
+
+h1 <- ggplot(heart_data, aes(x=chol, fill=sex)) +
+  geom_histogram(binwidth= 20, position="dodge")+labs(title = "chol histogram")
+
+h2 <- ggplot(heart_data, aes(x= age, fill=sex)) +
+  geom_histogram(binwidth= 5, position="dodge")+labs(title = "age histogram")
+
+h3 <- ggplot(heart_data, aes(x=oldpeak, fill=sex)) +
+  geom_histogram(binwidth= 1, position="dodge")+labs(title = "oldpeak histogram")
+
+h4 <- ggplot(heart_data, aes(x=thalach, fill=sex)) +
+  geom_histogram(binwidth= 5, position="dodge")+labs(title = "thalach histogram")
+
+h5 <- ggplot(heart_data, aes(x=trestbps, fill=sex)) +
+  geom_histogram(binwidth= 5, position="dodge")+labs(title = "trestbps histogram")
+
+grid.arrange(h1, h2,nrow = 1)
+grid.arrange(h2,h3,nrow = 1)
+h5
+
+```
+
+From the graphs it is clearly evident that the values are very high in male patients compared to female patients. To observe the same behaviour, i would like to plot the bar plots for categorical variables. 
+
+```{r, fig.width=8, fig.height=7}
+# Grouped Bar Plot
+attach(heart_data)
+par(mfrow=c(3,3))
+
+counts <- table(heart_data$cp, heart_data$sex)
+barplot(counts, main="cp ",
+        xlab="cp", ylab = "count",
+        col = c("red","green", "blue","black"),  beside=TRUE)
+legend("topright",legend = rownames(counts), fill =c("red", "green", "blue","black"), cex=0.5)
+
+counts1 <- table(heart_data$restecg, heart_data$sex)
+barplot(counts1, main="restecg ",
+        xlab="restecg",ylab = "count", col = c("red","green", "blue"),beside=TRUE)
+
+legend("topleft",legend = rownames(counts1), fill =c("red", "green", "blue"), cex=0.6)
+
+counts2 <- table(heart_data$target, heart_data$sex)
+barplot(counts2, main="target ",
+        xlab="target",ylab = "count", col = c("red","green"),beside=TRUE)
+
+legend("topleft",legend = rownames(counts2), fill =c("red", "green"), cex=0.5)
+
+counts3 <- table(heart_data$ca, heart_data$sex)
+barplot(counts3, main="ca ",
+        xlab="ca",ylab = "count", col = c("red", "green", "blue","black"),beside=TRUE)
+
+legend("topright",legend = rownames(counts3), fill =c("red", "green", "blue","black"), cex=0.6)
+
+counts4 <- table(heart_data$fbs, heart_data$sex)
+barplot(counts4, main="fbs ",
+        xlab="fbs",ylab = "count", col = c("red", "green"),beside=TRUE)
+
+legend("topleft",legend = rownames(counts4), fill =c("red", "green"), cex=0.6)
+
+counts5 <- table(heart_data$thal, heart_data$sex)
+barplot(counts5, main="thal ",
+        xlab="thal",ylab = "count", col = c("red", "green", "blue","black"),beside=TRUE)
+
+legend("top",legend = rownames(counts5), fill =c("red", "green", "blue","black"), cex=0.6)
+
+counts6 <- table(heart_data$slope, heart_data$sex)
+barplot(counts6, main="slope ",
+        xlab="slope",ylab = "count", col = c("red", "green", "blue"),beside=TRUE)
+
+legend("top",legend = rownames(counts6), fill =c("red", "green", "blue"), cex=0.6)
+
+counts7 <- table(heart_data$exang, heart_data$sex)
+barplot(counts7, main="exang ",
+        xlab="exang",ylab = "count", col = c("red", "green"),beside=TRUE)
+
+legend("topleft",legend = rownames(counts7), fill =c("red", "green"), cex=0.6)
+
+```
+
+From the bar plots also it is very clear that the values for male patients are high compared to female patients. One reason might be the number of observations for female patients are less compared to male patients. I would like to confirm it by seperating the data for female and male patients.
+
+```{r}
+
+male_data <- subset(heart_data, sex == "male")
+
+nrow(male_data)
+
+head(male_data)
+
+female_data <- subset(heart_data, sex == "female")
+
+nrow(female_data)
+
+head(female_data)
+
+```
+
+From the results it is clear that the number of observations for male patients are high. I would like to plot some more scatter plots to find out the affect of age on various parameters.
+
+```{r, fig.width=10, fig.height=8}
+p1 <- heart_data %>%
+      ggplot(aes(x = age, y = chol, col = sex)) +
+      geom_point() + ggtitle("age vs chol") 
+
+p2 <- heart_data %>%
+      ggplot(aes(x = age, y = thalach, col = sex)) +
+      geom_point() + ggtitle("age vs thalach")
+
+p3 <- heart_data %>%
+      ggplot(aes(x = age, y = oldpeak, col = sex)) +
+      geom_point() + ggtitle("age vs oldpeak")
+
+p4 <- heart_data %>%
+      ggplot(aes(x = age, y = trestbps, col = sex)) +
+      geom_point() + ggtitle("age vs trestbps") 
+
+library(gridExtra)
+grid.arrange(p1, p2, p3, p4, nrow = 2)
+
+```
+From the scatter plots it is clear that there is some correlation between other variables and age. Further i would like to perform correlation analysis and find out the relation between the variables and build the regression model to predict the outcome variable target. I would like to find out the accuracy of the model and compare it with the nearest neighbour algorithm.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(pastecs)
+library(e1071)
+library(factoextra)
+library(dplyr)
+library(gmodels)
+library(class)
+library(car) 
+library(Hmisc)
+library(data.table)
+
+```
+
+
+After plotting several plots and graphs from step-2, i would like to plot some other plots to understand the correlation between different varaiables.
+
+```{r, fig.width=10, fig.height=8}
+
+p1 <- heart_data %>%
+  ggplot(aes(x = age, y = chol, col = sex)) +
+  geom_point() + ggtitle("age vs chol") 
+
+p2 <- heart_data %>%
+  ggplot(aes(x = chol, y = thalach, col = sex)) +
+  geom_point() + ggtitle("chol vs thalach")
+
+p3 <- heart_data %>%
+  ggplot(aes(x = age, y = oldpeak, col = sex)) +
+  geom_point() + ggtitle("trestbps vs oldpeak")
+
+p4 <- heart_data %>%
+  ggplot(aes(x = age, y = trestbps, col = sex)) +
+  geom_point() + ggtitle("trestbps vs thalach ") 
+
+library(gridExtra)
+
+grid.arrange(p1, p2, p3, p4, nrow = 2)
+
+```
+
+From the plots it is evident that there is a positive correlation between age and chol, age and oldpeak & age and trestbps. 
+
+From various plots and graphs it was clear that the distribution of male and female patients is different for various variables. So i would like to analyze this data by dividing it in to two groups.
+
+I would like to divide data into male data and female data and analyze it further.
+
+```{r}
+male_data1 <- subset(heart_data, sex == "male")
+
+female_data1 <- subset(heart_data, sex == "female")
+
+# selecting continuous variables for further analysis
+
+male_data <- male_data1[, c(1,4,5,8,10)]  
+
+head(male_data)
+
+female_data <- female_data1[, c(1,4,5,8,10)]  
+
+head(female_data)
+
+heart_data <- heart_data[, c(1,4,5,8,10)]  
+
+head( heart_data)
+
+```
+
+```{r}
+# using stat.desc() to quatify the data distribution
+
+round(stat.desc(male_data, basic = FALSE, norm = TRUE), digits= 3)
+
+round(stat.desc(female_data, basic = FALSE, norm = TRUE), digits= 3)
+
+round(stat.desc(heart_data, basic = FALSE, norm = TRUE), digits= 3)
+
+# correlation analysis
+
+cor(heart_data,method = "spearman")
+
+cor(male_data,method = "spearman")
+
+cor(female_data,method = "spearman")
+
+```
+
+After using the stat.desc(), i can conclude that data is not normally distributed. So i would like to use the "spearman" method for correlation analysis. After the analysis i have realized that even though, the values are different, but their correlation between different variables is similar. So i would like to consider the data as whole for further analysis which can reduce the time in doing the same analysis repeatedly.
+
+Even though the variables are correlated, i would like to understand which variables contribute the most for predicting the outcome variable(target). My intention is to predict the target from different variables.
+
+I would like to perform regression analysis for predicting the outcome variable and find out the accuracy of the test. As the otcome variable is categorical, i would like to go with logistic regression model. I would like to compare my regression analysis with nearest neighbors algorithm.
+
+```{r}
+library(caTools)
+
+#splitting the data in to two variables train and test
+
+split <- sample.split(heart_data1, SplitRatio = 0.8)
+split
+
+train <- subset(heart_data1, split== "TRUE")
+test <- subset(heart_data1, split== "FALSE")
+
+#Using the glm() function to perform the logistic regression
+
+heart_data_model1 <- glm(target ~ cp + ca + slope + thalach + thal , data = train, family = binomial())
+
+summary(heart_data_model1)
+
+# using the dataset to predict the outcome variable 'target'
+
+res <- predict(heart_data_model1,test,type = "response")
+
+res <- predict(heart_data_model1,train,type = "response")
+
+
+# preparing the confusion matrix for model1
+
+confmatrix <- table(Actual_value = train$target, Predicted_value = res > 0.5)
+
+confmatrix
+
+# accuracy of model1
+
+accuracy <- 100 * (confmatrix[[1,1]] + confmatrix[[2,2]]) / sum(confmatrix)
+
+accuracy
+
+```
+
+As the p values for all the variables is 0.05, all predicting variables are statistically significant. Accuracy of the logistic regression model is 82.7%. Now going to perform the analysis with nearest neighbors algorithm.
+
+```{r}
+
+# Build your own `normalize()` function
+
+normalize <- function(x) {
+  num <- x - min(x)
+  denom <- max(x) - min(x)
+  return (num/denom)
+}
+
+
+# normalizing the data
+
+heart_data_Norm <- as.data.frame(lapply(heart_data1, normalize))
+
+set.seed(1234)
+
+ind <- sample(2, nrow(heart_data1), replace=TRUE, prob=c(0.8, 0.2))
+
+# Compose training set
+heart_data1.training <- heart_data1[ind==1, 1:13]
+
+# Compose test set
+heart_data1.test <- heart_data1[ind==2, 1:13]
+
+# Compose training labels
+heart_data1.trainLabels <- heart_data1[ind==1,14]
+
+# Compose test labels
+heart_data1.testLabels <- heart_data1[ind==2,14]
+
+# Build the model
+
+library(class)
+
+heart_data1_pred <- knn(train = heart_data1.training, test = heart_data1.test, cl = heart_data1.trainLabels, k=17)
+
+# Inspect `heart_data1_pred`
+(heart_data1_pred)
+
+# Put `heart_data1_TestLabels` in a data frame
+heart_data1_TestLabels <- data.frame(heart_data1.testLabels)
+
+# Merge `heart_data1_pred` and `heart_data1.testLabels` 
+merge <- data.frame(heart_data1_pred, heart_data1.testLabels)
+
+# Specify column names for `merge`
+names(merge) <- c("Predicted values", "Observed values")
+
+knnmatrix <- CrossTable(x = heart_data1.testLabels, y = heart_data1_pred, prop.chisq=FALSE)
+
+ACC_knn <- 100 * sum(heart_data1.testLabels == heart_data1_pred)/NROW(heart_data1.testLabels) 
+
+ACC_knn
+
+
+```
+
+The accuracy of the nearest neighbors algorithm is 56.6%. I would like to analyze the results from various models and coclude what might be the reasons for that.
+
+**Summarize the problem statement you addressed.**
+
+From the dataset I wanted to find out any trends in heart data to predict certain cardiovascular events or find any clear indications of heart health. Is there any difference between for male and female patient’s data? If so how can we use this in predicting the target? Is there any correlation between target and other variables? Which variables contributes most to the target variables? Can we build a regression model to predict the result? If we can build a model, what will be the accuracy of the model? How can we improve that?
+
+**Summarize how you addressed this problem statement (the data used and the methodology employed).**
+
+I have used heart_data for my analysis. I have checked for any missing values and converted all categorical variables into factors. Removed special characters from the variable names. I have plotted the histograms for different continuous variables by grouping the data as male and female data. For categorical variables I have used bar plots to find out the distribution. From the bar plots also it is very clear that the values for male patients are high compared to female patients. One reason might be the number of observations for female patients are less compared to male patients. I would like to confirm it by separating the data for female and male patients. The number of observations for male patients are high compared to female patients. I have used scatter plots to find out the correlation between the variables. After using the stat.desc (), I have conclude that data is not normally distributed. So I have used the "spearman" method for correlation analysis. After the analysis I have realized that even though, the values are different, but their correlation between different variables is similar for male and female data. So I have considered the data as whole for further analysis which can reduce the time in doing the same analysis repeatedly.Even though the variables are correlated, I would like to understand which variables contribute the most for predicting the outcome variable (target). My intention is to predict the target from different variables.I have performed regression analysis for predicting the outcome variable and find out the accuracy of the test. As the outcome variable is categorical, I have used logistic regression model. I have compared regression model with nearest neighbors algorithm.
+
+**Summarize the interesting insights that your analysis provided.**
+
+Firstly the number of observations for male data and female data are different. The values for different variables also different. Which means symptoms of heart disease for male and female patients will be different. Age has positive correlation with different variables. From the regression analysis I have concluded that cp, ca, slope, thalach and thal as predictor variables we can predict the heart disease. 
+
+**Summarize the implications to the consumer (target audience) of your analysis.**
+
+Even though we cannot completely avoid Heart Diseases, but from the symptoms and the range of values we can take necessary actions like taking some preventing medication we can definitely control the number of cases. As they say prevention is better than cure, by changing our life style and food habits we can definitely control the severity of the cases.
+
+**Discuss the limitations of your analysis and how you, or someone else, could improve or build on it.**
+
+In this project I have tried regression and k-nearest neighbors algorithms for my analysis. For the logistic regression model the accuracy is around 83% and for knn it is around 57% only. I would like to understand the reasons for less accuracy of knn model and try to improve it further.
+
+
+###References:
+
+https://www.cdc.gov/heartdisease/facts.htm
+
+https://www.kaggle.com/ronitf/heart-disease-uci
+
+Field, A. P., Miles, J., & Field Zoë. (2012). Discovering statistics using R. Thousand Oaks, CA: Sage.
+
+https://www.r-bloggers.com/quick-plot-of-all-variables/
+
+https://stackoverflow.com/questions/34044725/r-split-histogram-according-to-factor-level
+
+http://rprogramming.net/rename-columns-in-r/
+
+https://www.datacamp.com/community/tutorials/machine-learning-in-r
+
+https://www.analyticsvidhya.com/blog/2015/08/learning-concept-knn-algorithms-programming/
+
+Simplilearn. (2018). Logistic Regression in R. https://youtu.be/XycruVLySDg
+
+https://data.princeton.edu/r/glms
+
+https://stackoverflow.com/questions/54738503/why-is-the-accuracy-of-the-logistic-regression-classifier-different-from-k-neare
+
+https://towardsdatascience.com/comparative-study-on-classic-machine-learning-algorithms-24f9ff6ab222
+
+
