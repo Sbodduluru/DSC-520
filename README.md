@@ -1,4 +1,4 @@
-# DSC-520
+# Heart disease Prediction
 Statistics for Data Science
  Heart disease is the leading cause of death for people of most ethnicities in the United States. About 610,000 people die of heart disease
  in the United States every year-that's 1 in every 4 deaths. Heart disease is the leading cause of death for both men and women. More than 
